@@ -1,0 +1,17 @@
+{
+  "name": "reSysInfo",
+  "version": "1.0.0",
+  "description": "Module for collecting and publishing system statistics about the controller's operation, including date and time",
+  "keywords": "system",
+  "authors":
+  [
+    {
+      "name": "Alexander Razzhivin",
+      "email": "kotyara12@yandex.ru",
+      "url": "https://kotyara12.ru"
+    }
+  ],
+  "license": "MIT",
+  "frameworks": ["espidf"],
+  "platforms": ["espressif32"]
+}
