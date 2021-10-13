@@ -110,7 +110,7 @@ static char* _mqttTopicTime = NULL;
 char* mqttTopicDateTimeCreate(const bool primary)
 {
   if (_mqttTopicTime) free(_mqttTopicTime);
-  _mqttTopicTime = mqttGetTopic1(primary, false, CONFIG_MQTT_TIME_TOPIC);
+  _mqttTopicTime = mqttGetTopicDevice1(primary, false, CONFIG_MQTT_TIME_TOPIC);
   rlog_i(logTAG, "Generated topic for publishing date and time: [ %s ]", _mqttTopicTime);
   return _mqttTopicTime;
 }
@@ -173,7 +173,7 @@ static char* _mqttTopicSysInfo = NULL;
 char* mqttTopicSysInfoCreate(const bool primary)
 {
   if (_mqttTopicSysInfo) free(_mqttTopicSysInfo);
-  _mqttTopicSysInfo = mqttGetTopic1(primary, CONFIG_MQTT_SYSINFO_LOCAL, CONFIG_MQTT_SYSINFO_TOPIC);
+  _mqttTopicSysInfo = mqttGetTopicDevice1(primary, CONFIG_MQTT_SYSINFO_LOCAL, CONFIG_MQTT_SYSINFO_TOPIC);
   rlog_i(logTAG, "Generated topic for publishing system info: [ %s ]", _mqttTopicSysInfo);
   return _mqttTopicSysInfo;
 }
