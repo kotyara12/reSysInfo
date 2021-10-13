@@ -7,6 +7,7 @@
 #include "reEvents.h"
 #include "reWiFi.h"
 #include "project_config.h"
+#include "def_consts.h"
 #if CONFIG_MQTT_TIME_ENABLE
 #include "reMqtt.h"
 #endif // CONFIG_MQTT_TIME_ENABLE
