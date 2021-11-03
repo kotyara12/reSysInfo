@@ -12,6 +12,9 @@
 #include <time.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "sdkconfig.h"
 #include "project_config.h"
 #include "def_consts.h"
 
@@ -53,8 +56,15 @@ void  mqttTopicSysInfoFree();
 #endif // CONFIG_MQTT_SYSINFO_ENABLE
 
 #if CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
-void sysinfoPublishSysInfo();
+void  sysinfoPublishSysInfo();
 #endif // CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
+
+#if CONFIG_MQTT_TASKLIST_ENABLE
+char* mqttTopicTaskListCreate(const bool primary);
+char* mqttTopicTaskListGet();
+void  mqttTopicTaskListFree();
+void  sysinfoPublishTaskList();
+#endif // CONFIG_MQTT_TASKLIST_ENABLE
 
 bool sysinfoEventHandlerRegister();
 bool sysinfoEventHandlerUnregister();

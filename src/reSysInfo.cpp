@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "reSysInfo.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "rLog.h"
 #include "rStrings.h"
 #include "reStates.h"
@@ -265,6 +267,115 @@ void sysinfoPublishSysInfo()
 #endif // CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
 
 // -----------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------- Publish tasklist information --------------------------------------------
+// -----------------------------------------------------------------------------------------------------------------------
+
+#if CONFIG_MQTT_TASKLIST_ENABLE
+
+static char* _mqttTopicTaskList = NULL;
+
+char* mqttTopicTaskListCreate(const bool primary)
+{
+  if (_mqttTopicTaskList) free(_mqttTopicTaskList);
+  _mqttTopicTaskList = mqttGetTopicDevice1(primary, CONFIG_MQTT_TASKLIST_LOCAL, CONFIG_MQTT_TASKLIST_TOPIC);
+  rlog_i(logTAG, "Generated topic for publishing task list: [ %s ]", _mqttTopicTaskList);
+  return _mqttTopicTaskList;
+}
+
+char* mqttTopicTaskListGet()
+{
+  return _mqttTopicTaskList;
+}
+
+void mqttTopicTaskListFree()
+{
+  if (_mqttTopicTaskList) free(_mqttTopicTaskList);
+  _mqttTopicTaskList = nullptr;
+  rlog_d(logTAG, "Topic for publishing task list has been scrapped");
+}
+
+const char* sysinfoTaskListState(eTaskState state)
+{
+  switch (state) {
+    case eRunning:   return "running";
+    case eReady:     return "ready";
+    case eBlocked:   return "blocked";
+    case eSuspended: return "suspended";
+    case eDeleted:   return "deleted";
+    default:         return "invalid";
+  };
+}
+
+void sysinfoPublishTaskList()
+{
+  TaskStatus_t *pxTaskStatusArray = nullptr;
+  volatile UBaseType_t uxArraySize, x;
+  uint32_t ulTotalRunTime;
+
+  if (statesMqttIsConnected() && (_mqttTopicTaskList)) {
+    // Take a snapshot of the number of tasks in case it changes while this function is executing.
+    uxArraySize = uxTaskGetNumberOfTasks();
+    // Allocate a TaskStatus_t structure for each task.  An array could be allocated statically at compile time.
+    pxTaskStatusArray = (TaskStatus_t*)pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
+    if (pxTaskStatusArray) {
+      char * json_task = nullptr;
+      char * json_summary = nullptr;
+      // Generate raw status information about each task.
+      uxArraySize = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize, &ulTotalRunTime);
+      // For each populated position in the pxTaskStatusArray array
+      for (x=0; x<uxArraySize; x++) {
+        if (ulTotalRunTime > 0) {
+          json_task = malloc_stringf("{\"id\":%d,\"state\":\"%s\",\"core\":%d,\"state\":\"%s\",\"current_priority\":%d,\"base_priority\":%d,\"run_time_counter\":%d,\"run_time\":%.2f,\"stack_base\":\"%x\",\"stack_minimum\":%d}",
+            pxTaskStatusArray[x].xTaskNumber, pxTaskStatusArray[x].pcTaskName, 
+            #ifdef CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
+            pxTaskStatusArray[x].xCoreID > 1 ? -1 : pxTaskStatusArray[x].xCoreID, 
+            #else
+            -1,
+            #endif // CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
+            sysinfoTaskListState(pxTaskStatusArray[x].eCurrentState), 
+            pxTaskStatusArray[x].uxCurrentPriority, pxTaskStatusArray[x].uxBasePriority,
+            pxTaskStatusArray[x].ulRunTimeCounter, (float)pxTaskStatusArray[x].ulRunTimeCounter / ulTotalRunTime,
+            pxTaskStatusArray[x].pxStackBase, pxTaskStatusArray[x].usStackHighWaterMark);
+        } else {
+          json_task = malloc_stringf("{\"id\":%d,\"name\":\"%s\",\"core\":%d,\"state\":\"%s\",\"current_priority\":%d,\"base_priority\":%d,\"run_time_counter\":%d,\"stack_base\":\"%x\",\"stack_minimum\":%d}",
+            pxTaskStatusArray[x].xTaskNumber, pxTaskStatusArray[x].pcTaskName, 
+            #ifdef CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
+            pxTaskStatusArray[x].xCoreID > 1 ? -1 : pxTaskStatusArray[x].xCoreID, 
+            #else
+            -1,
+            #endif // CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
+            sysinfoTaskListState(pxTaskStatusArray[x].eCurrentState), 
+            pxTaskStatusArray[x].uxCurrentPriority, pxTaskStatusArray[x].uxBasePriority,
+            pxTaskStatusArray[x].ulRunTimeCounter,
+            pxTaskStatusArray[x].pxStackBase, pxTaskStatusArray[x].usStackHighWaterMark);
+        };
+        if (json_task) {
+          if (json_summary) {
+            char* json_temp = json_summary;
+            json_summary = malloc_stringf("%s,%s", json_temp, json_task);
+            free(json_temp);
+          } else {
+            json_summary = malloc_string(json_task);
+          };
+          free(json_task);
+        };
+      };
+      // Publish data
+      if (json_summary) {
+        mqttPublish(_mqttTopicTaskList, malloc_stringf("[%s]", json_summary), 
+          CONFIG_MQTT_TASKLIST_QOS, CONFIG_MQTT_TASKLIST_RETAINED, false, false, true);
+        free(json_summary);
+        json_summary = nullptr;
+      };
+      // The array is no longer needed, free the memory it consumes
+      vPortFree(pxTaskStatusArray);
+    };
+  };
+}
+
+#endif // CONFIG_MQTT_TASKLIST_ENABLE
+
+// -----------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------- Event handlers ---------------------------------------------------
 // -----------------------------------------------------------------------------------------------------------------------
 
@@ -286,6 +397,10 @@ static void sysinfoMqttEventHandler(void* arg, esp_event_base_t event_base, int3
     mqttTopicSysInfoCreate(data->primary);
     #endif // CONFIG_MQTT_SYSINFO_ENABLE
 
+    #if CONFIG_MQTT_TASKLIST_ENABLE
+    mqttTopicTaskListCreate(data->primary);
+    #endif // CONFIG_MQTT_TASKLIST_ENABLE
+
     #if CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
     sysinfoPublishSysInfo();
     #endif // CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
@@ -305,6 +420,10 @@ static void sysinfoMqttEventHandler(void* arg, esp_event_base_t event_base, int3
     #if CONFIG_MQTT_SYSINFO_ENABLE
     mqttTopicSysInfoFree();
     #endif // CONFIG_MQTT_SYSINFO_ENABLE
+
+    #if CONFIG_MQTT_TASKLIST_ENABLE
+    mqttTopicTaskListFree();
+    #endif // CONFIG_MQTT_TASKLIST_ENABLE
   };
 }
 
