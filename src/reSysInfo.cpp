@@ -10,6 +10,7 @@
 #include "reWiFi.h"
 #include "project_config.h"
 #include "def_consts.h"
+#include "reEsp32.h"
 #if CONFIG_MQTT_TIME_ENABLE
 #include "reMqtt.h"
 #endif // CONFIG_MQTT_TIME_ENABLE
@@ -215,8 +216,8 @@ void sysinfoPublishSysInfo()
     rlog_d(logTAG, "System information publishing...");
     
     if (statesMqttIsConnected()) {
-      char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.1fKb %.0f%%",
-        _worktime.days, _worktime.hours, _worktime.minutes, wifi_info.rssi, heap_free, 100.0*heap_free/heap_total);
+      char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.0fKb %.0f%% %d",
+        _worktime.days, _worktime.hours, _worktime.minutes, wifi_info.rssi, heap_free, 100.0*heap_free/heap_total, heapAllocFailedCount());
         
       if (s_status) {
         #if CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO
@@ -240,8 +241,8 @@ void sysinfoPublishSysInfo()
               ip[0], ip[1], ip[2], ip[3], mask[0], mask[1], mask[2], mask[3], gw[0], gw[1], gw[2], gw[3]);
             char * s_work = malloc_stringf("{\"days\":%d,\"hours\":%d,\"minutes\":%d}",
               _worktime.days, _worktime.hours, _worktime.minutes);
-            char * s_heap = malloc_stringf("{\"total\":\"%.1f\",\"free\":\"%.1f\",\"free_percents\":\"%.0f\",\"free_min\":\"%.1f\",\"free_min_percents\":\"%.0f\"}",
-              heap_total, heap_free, 100.0*heap_free/heap_total, heap_min, 100.0*heap_min/heap_total);
+            char * s_heap = malloc_stringf("{\"total\":\"%.1f\",\"errors\":%d,\"free\":\"%.1f\",\"free_percents\":\"%.0f\",\"free_min\":\"%.1f\",\"free_min_percents\":\"%.0f\"}",
+              heap_total, heapAllocFailedCount(), heap_free, 100.0*heap_free/heap_total, heap_min, 100.0*heap_min/heap_total);
             
             if ((s_wifi) && (s_work) && (s_heap) && (s_status)) {
               char * json = malloc_stringf("{\"firmware\":\"%s\",\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"summary\":\"%s\"}", 
