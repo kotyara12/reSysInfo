@@ -3,12 +3,14 @@
 #include "reSysInfo.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "nvs.h"
 #include "rLog.h"
 #include "rStrings.h"
 #include "reStates.h"
 #include "reEvents.h"
 #include "reWiFi.h"
 #include "project_config.h"
+#include "sdkconfig.h"
 #include "def_consts.h"
 #include "reEsp32.h"
 #if CONFIG_MQTT_TIME_ENABLE
@@ -208,16 +210,20 @@ void sysinfoPublishSysInfo()
   uint8_t * ip = (uint8_t*)&(wifi_ip.ip);
   uint8_t * mask = (uint8_t*)&(wifi_ip.netmask);
   uint8_t * gw = (uint8_t*)&(wifi_ip.gw);
+  nvs_stats_t nvs_stats;
+  nvs_get_stats(NULL, &nvs_stats);
 
-  rlog_d(logTAG, "Heap total: %.2f kB, free: %.2f kB (%.0f%%), minimum: %.2f kB (%.0f%%)",
-    heap_total, heap_free, 100.0*heap_free/heap_total, heap_min, 100.0*heap_min/heap_total);
+  // rlog_d(logTAG, "Heap total: %.2f kB, free: %.2f kB (%.0f%%), minimum: %.2f kB (%.0f%%)",
+  //   heap_total, heap_free, 100.0*heap_free/heap_total, heap_min, 100.0*heap_min/heap_total);
 
   if (statesWiFiIsConnected()) {
     rlog_d(logTAG, "System information publishing...");
     
     if (statesMqttIsConnected()) {
-      char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.0fKb %.0f%% %d",
-        _worktime.days, _worktime.hours, _worktime.minutes, wifi_info.rssi, heap_free, 100.0*heap_free/heap_total, heapAllocFailedCount());
+      char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.0f%% | %d | %.0f%%",
+        _worktime.days, _worktime.hours, _worktime.minutes, wifi_info.rssi, 
+        100.0*heap_free/heap_total, heapAllocFailedCount(),
+        100.0*nvs_stats.free_entries/nvs_stats.total_entries);
         
       if (s_status) {
         #if CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO
@@ -241,16 +247,41 @@ void sysinfoPublishSysInfo()
               ip[0], ip[1], ip[2], ip[3], mask[0], mask[1], mask[2], mask[3], gw[0], gw[1], gw[2], gw[3]);
             char * s_work = malloc_stringf("{\"days\":%d,\"hours\":%d,\"minutes\":%d}",
               _worktime.days, _worktime.hours, _worktime.minutes);
-            char * s_heap = malloc_stringf("{\"total\":\"%.1f\",\"errors\":%d,\"free\":\"%.1f\",\"free_percents\":\"%.0f\",\"free_min\":\"%.1f\",\"free_min_percents\":\"%.0f\"}",
-              heap_total, heapAllocFailedCount(), heap_free, 100.0*heap_free/heap_total, heap_min, 100.0*heap_min/heap_total);
-            
-            if ((s_wifi) && (s_work) && (s_heap) && (s_status)) {
-              char * json = malloc_stringf("{\"firmware\":\"%s\",\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"summary\":\"%s\"}", 
-                APP_VERSION, s_wifi, s_work, s_heap, s_status);
-              if (json) mqttPublish(_mqttTopicSysInfo, json, 
-                CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, false, true);
-            };
+            char * s_heap = malloc_stringf("{\"total\":%.1f,\"errors\":%d,\"free\":%.1f,\"free_percents\":%.1f,\"free_min\":%.1f,\"free_min_percents\":%.1f}",
+              heap_total, heapAllocFailedCount(), 
+              heap_free, 100.0*heap_free/heap_total, 
+              heap_min, 100.0*heap_min/heap_total);
+            char * s_nvs = malloc_stringf("{\"total_entries\":%d,\"used_entries\":%d,\"used_percents\":%.1f,\"free_entries\":%d,\"free_percents\":%.1f,\"namespaces\":%d}",
+              nvs_stats.total_entries, 
+              nvs_stats.used_entries, 100.0*nvs_stats.used_entries/nvs_stats.total_entries,
+              nvs_stats.free_entries, 100.0*nvs_stats.free_entries/nvs_stats.total_entries,
+              nvs_stats.namespace_count);
 
+            #if defined(CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS) && CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS
+              char * s_sys_errors = statesGetErrorsJson();
+              char * s_sys_flags = statesGetJson();
+              char * s_wifi_flags = wifiStatusGetJson();
+
+              if ((s_wifi) && (s_work) && (s_heap) && (s_nvs) && (s_sys_errors) && (s_sys_flags) && (s_wifi_flags)) {
+                char * json = malloc_stringf("{\"firmware\":\"%s\",\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s,\"errors\":%s,\"sys_flags\":%s,\"wifi_flags\":%s}", 
+                  APP_VERSION, s_wifi, s_work, s_heap, s_nvs, s_sys_errors, s_sys_flags, s_wifi_flags);
+                if (json) mqttPublish(_mqttTopicSysInfo, json, 
+                  CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, false, true);
+              };
+
+              if (s_wifi_flags) free(s_wifi_flags);
+              if (s_sys_flags) free(s_sys_flags);
+              if (s_sys_errors) free(s_sys_errors);
+            #else
+              if ((s_wifi) && (s_work) && (s_heap) && (s_nvs)) {
+                char * json = malloc_stringf("{\"firmware\":\"%s\",\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s}", 
+                  APP_VERSION, s_wifi, s_work, s_heap, s_nvs);
+                if (json) mqttPublish(_mqttTopicSysInfo, json, 
+                  CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, false, true);
+              };
+            #endif // CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS
+            
+            if (s_nvs)  free(s_nvs);
             if (s_heap) free(s_heap);
             if (s_work) free(s_work);
             if (s_wifi) free(s_wifi);
