@@ -220,7 +220,7 @@ void sysinfoPublishSysInfo()
     rlog_d(logTAG, "System information publishing...");
     
     if (statesMqttIsConnected()) {
-      char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.0f%% | %d | %.0f%%",
+      char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.0f%% %d %.0f%%",
         _worktime.days, _worktime.hours, _worktime.minutes, wifi_info.rssi, 
         100.0*heap_free/heap_total, heapAllocFailedCount(),
         100.0*nvs_stats.free_entries/nvs_stats.total_entries);
@@ -358,7 +358,8 @@ void sysinfoPublishTaskList()
       for (x=0; x<uxArraySize; x++) {
         if (ulTotalRunTime > 0) {
           json_task = malloc_stringf("{\"id\":%d,\"state\":\"%s\",\"core\":%d,\"state\":\"%s\",\"current_priority\":%d,\"base_priority\":%d,\"run_time_counter\":%d,\"run_time\":%.2f,\"stack_base\":\"%x\",\"stack_minimum\":%d}",
-            pxTaskStatusArray[x].xTaskNumber, pxTaskStatusArray[x].pcTaskName, 
+            pxTaskStatusArray[x].xTaskNumber, 
+            pxTaskStatusArray[x].pcTaskName, 
             #ifdef CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
             pxTaskStatusArray[x].xCoreID > 1 ? -1 : pxTaskStatusArray[x].xCoreID, 
             #else
@@ -370,7 +371,8 @@ void sysinfoPublishTaskList()
             pxTaskStatusArray[x].pxStackBase, pxTaskStatusArray[x].usStackHighWaterMark);
         } else {
           json_task = malloc_stringf("{\"id\":%d,\"name\":\"%s\",\"core\":%d,\"state\":\"%s\",\"current_priority\":%d,\"base_priority\":%d,\"run_time_counter\":%d,\"stack_base\":\"%x\",\"stack_minimum\":%d}",
-            pxTaskStatusArray[x].xTaskNumber, pxTaskStatusArray[x].pcTaskName, 
+            pxTaskStatusArray[x].xTaskNumber, 
+            pxTaskStatusArray[x].pcTaskName, 
             #ifdef CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
             pxTaskStatusArray[x].xCoreID > 1 ? -1 : pxTaskStatusArray[x].xCoreID, 
             #else
