@@ -348,7 +348,7 @@ void sysinfoPublishTaskList()
     // Take a snapshot of the number of tasks in case it changes while this function is executing.
     uxArraySize = uxTaskGetNumberOfTasks();
     // Allocate a TaskStatus_t structure for each task.  An array could be allocated statically at compile time.
-    pxTaskStatusArray = (TaskStatus_t*)pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
+    pxTaskStatusArray = (TaskStatus_t*)esp_malloc(uxArraySize * sizeof(TaskStatus_t));
     if (pxTaskStatusArray) {
       char * json_task = nullptr;
       char * json_summary = nullptr;
@@ -438,6 +438,18 @@ static void sysinfoMqttEventHandler(void* arg, esp_event_base_t event_base, int3
     #if CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
     sysinfoPublishSysInfo();
     #endif // CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
+
+    #if CONFIG_WIFI_DEBUG_ENABLE
+    char* jsonWiFiDebug = wifiGetDebugInfo();
+    if (jsonWiFiDebug) {
+      mqttPublish(
+        mqttGetTopicDevice1(data->primary, CONFIG_MQTT_WIFI_DEBUG_LOCAL, CONFIG_MQTT_WIFI_DEBUG_TOPIC),
+        jsonWiFiDebug, 
+        CONFIG_MQTT_WIFI_DEBUG_QOS,
+        CONFIG_MQTT_WIFI_DEBUG_RETAINED,
+        false, true, true);
+    };
+    #endif // CONFIG_WIFI_DEBUG_ENABLE
   } 
 
   // MQTT disconnected
