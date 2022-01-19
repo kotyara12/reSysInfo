@@ -2,7 +2,7 @@
    EN: Module for collecting and publishing system statistics about the controller's operation, including date and time
    RU: Модуль для сбора и публикации системной статистики о работе контроллера, в том числе даты и времени
    --------------------------
-   (с) 2021 Разживин Александр | Razzhivin Alexander
+   (с) 2021-2022 Разживин Александр | Razzhivin Alexander
    kotyara12@yandex.ru | https://kotyara12.ru | tg: @kotyara1971
 */
 

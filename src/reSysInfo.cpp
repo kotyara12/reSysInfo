@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "sdkconfig.h"
 #include "reSysInfo.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -117,7 +118,11 @@ char* mqttTopicDateTimeCreate(const bool primary)
 {
   if (_mqttTopicTime) free(_mqttTopicTime);
   _mqttTopicTime = mqttGetTopicDevice1(primary, false, CONFIG_MQTT_TIME_TOPIC);
-  rlog_i(logTAG, "Generated topic for publishing date and time: [ %s ]", _mqttTopicTime);
+  if (_mqttTopicTime) {
+    rlog_i(logTAG, "Generated topic for publishing date and time: [ %s ]", _mqttTopicTime);
+  } else {
+    rlog_e(logTAG, "Failed to generate topic for publishing date and time");
+  };
   return _mqttTopicTime;
 }
 
@@ -180,7 +185,11 @@ char* mqttTopicSysInfoCreate(const bool primary)
 {
   if (_mqttTopicSysInfo) free(_mqttTopicSysInfo);
   _mqttTopicSysInfo = mqttGetTopicDevice1(primary, CONFIG_MQTT_SYSINFO_LOCAL, CONFIG_MQTT_SYSINFO_TOPIC);
-  rlog_i(logTAG, "Generated topic for publishing system info: [ %s ]", _mqttTopicSysInfo);
+  if (_mqttTopicSysInfo) {
+    rlog_i(logTAG, "Generated topic for publishing system info: [ %s ]", _mqttTopicSysInfo);
+  } else {
+    rlog_e(logTAG, "Failed to generate topic for publishing system info");
+  };
   return _mqttTopicSysInfo;
 }
 
@@ -212,6 +221,7 @@ void sysinfoPublishSysInfo()
   uint8_t * gw = (uint8_t*)&(wifi_ip.gw);
   nvs_stats_t nvs_stats;
   nvs_get_stats(NULL, &nvs_stats);
+  
 
   // rlog_d(logTAG, "Heap total: %.2f kB, free: %.2f kB (%.0f%%), minimum: %.2f kB (%.0f%%)",
   //   heap_total, heap_free, 100.0*heap_free/heap_total, heap_min, 100.0*heap_min/heap_total);
@@ -256,15 +266,15 @@ void sysinfoPublishSysInfo()
               nvs_stats.used_entries, 100.0*nvs_stats.used_entries/nvs_stats.total_entries,
               nvs_stats.free_entries, 100.0*nvs_stats.free_entries/nvs_stats.total_entries,
               nvs_stats.namespace_count);
-
+            
             #if defined(CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS) && CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS
               char * s_sys_errors = statesGetErrorsJson();
               char * s_sys_flags = statesGetJson();
               char * s_wifi_flags = wifiStatusGetJson();
 
               if ((s_wifi) && (s_work) && (s_heap) && (s_nvs) && (s_sys_errors) && (s_sys_flags) && (s_wifi_flags)) {
-                char * json = malloc_stringf("{\"firmware\":\"%s\",\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s,\"errors\":%s,\"sys_flags\":%s,\"wifi_flags\":%s}", 
-                  APP_VERSION, s_wifi, s_work, s_heap, s_nvs, s_sys_errors, s_sys_flags, s_wifi_flags);
+                char * json = malloc_stringf("{\"firmware\":\"%s\",\"cpu_mhz\":%d,\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s,\"errors\":%s,\"sys_flags\":%s,\"wifi_flags\":%s}", 
+                  APP_VERSION, CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ, s_wifi, s_work, s_heap, s_nvs, s_sys_errors, s_sys_flags, s_wifi_flags);
                 if (json) mqttPublish(_mqttTopicSysInfo, json, 
                   CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, false, true);
               };
@@ -274,8 +284,8 @@ void sysinfoPublishSysInfo()
               if (s_sys_errors) free(s_sys_errors);
             #else
               if ((s_wifi) && (s_work) && (s_heap) && (s_nvs)) {
-                char * json = malloc_stringf("{\"firmware\":\"%s\",\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s}", 
-                  APP_VERSION, s_wifi, s_work, s_heap, s_nvs);
+                char * json = malloc_stringf("{\"firmware\":\"%s\",\"cpu_mhz\":%d,\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s}", 
+                  APP_VERSION, CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ, s_wifi, s_work, s_heap, s_nvs);
                 if (json) mqttPublish(_mqttTopicSysInfo, json, 
                   CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, false, true);
               };
