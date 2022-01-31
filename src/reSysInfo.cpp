@@ -230,7 +230,7 @@ void sysinfoPublishSysInfo()
 
   if (statesMqttIsEnabled()) {
     rlog_d(logTAG, "System information publishing...");
-    char * s_status = malloc_stringf("%.2d : %.2d : %.2d\\nRSSI: %d dBi\\n%.0f%% %d %.0f%%",
+    char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.0f%% %d %.0f%%",
       _worktime.days, _worktime.hours, _worktime.minutes, wifi_info.rssi, 
       100.0*heap_free/heap_total, heapAllocFailedCount(),
       100.0*nvs_stats.free_entries/nvs_stats.total_entries);
