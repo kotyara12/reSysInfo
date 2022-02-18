@@ -40,13 +40,13 @@ typedef struct {
 void sysinfoWorkTimeInc();
 worktime_t getWorkTime();
 
-void sysinfoFixDateTime(const struct tm currTime);
+void sysinfoFixDateTime(const struct tm* currTime);
 str_datetime_t getDateTimeStrings();
 #if CONFIG_MQTT_TIME_ENABLE
 char* mqttTopicDateTimeCreate(const bool primary);
 char* mqttTopicDateTimeGet();
 void  mqttTopicDateTimeFree();
-void  mqttPublishDateTime(const struct tm timeinfo);
+void  mqttPublishDateTime(const struct tm* timeinfo);
 #endif // CONFIG_MQTT_TIME_ENABLE
 
 #if CONFIG_MQTT_SYSINFO_ENABLE
