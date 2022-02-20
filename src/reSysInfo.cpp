@@ -251,7 +251,7 @@ void sysinfoPublishSysInfo()
       #endif // CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO
       
       #if CONFIG_MQTT_SYSINFO_ENABLE
-        if (_mqttTopicSysInfo) {
+        if (statesInetIsGood(true) && _mqttTopicSysInfo) {
           char * s_wifi = malloc_stringf("{\"ssid\":\"%s\",\"rssi\":%d,\"ip\":\"%d.%d.%d.%d\",\"mask\":\"%d.%d.%d.%d\",\"gw\":\"%d.%d.%d.%d\"}",
             wifi_info.ssid, wifi_info.rssi,
             ip[0], ip[1], ip[2], ip[3], mask[0], mask[1], mask[2], mask[3], gw[0], gw[1], gw[2], gw[3]);
@@ -348,7 +348,7 @@ const char* sysinfoTaskListState(eTaskState state)
 
 void sysinfoPublishTaskList()
 {
-  if (statesMqttIsEnabled() && (_mqttTopicTaskList)) {
+  if (statesInetIsGood(true) && statesMqttIsEnabled() && (_mqttTopicTaskList)) {
     TaskStatus_t *pxTaskStatusArray = nullptr;
     volatile UBaseType_t uxArraySize, x;
     uint32_t ulTotalRunTime;
