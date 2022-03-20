@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs.h"
+#include "soc/rtc.h" 
 #include "rLog.h"
 #include "rStrings.h"
 #include "reStates.h"
@@ -223,8 +224,9 @@ void sysinfoPublishSysInfo()
   uint8_t * gw = (uint8_t*)&(wifi_ip.gw);
   nvs_stats_t nvs_stats;
   nvs_get_stats(NULL, &nvs_stats);
+  rtc_cpu_freq_config_t cpu;
+  rtc_clk_cpu_freq_get_config(&cpu);
   
-
   // rlog_d(logTAG, "Heap total: %.2f kB, free: %.2f kB (%.0f%%), minimum: %.2f kB (%.0f%%)",
   //   heap_total, heap_free, 100.0*heap_free/heap_total, heap_min, 100.0*heap_min/heap_total);
 
@@ -274,9 +276,9 @@ void sysinfoPublishSysInfo()
 
             if ((s_wifi) && (s_work) && (s_heap) && (s_nvs) && (s_sys_errors) && (s_sys_flags) && (s_wifi_flags)) {
               char * json = malloc_stringf("{\"firmware\":\"%s\",\"cpu_mhz\":%d,\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s,\"errors\":%s,\"sys_flags\":%s,\"wifi_flags\":%s}", 
-                APP_VERSION, CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ, s_wifi, s_work, s_heap, s_nvs, s_sys_errors, s_sys_flags, s_wifi_flags);
+                APP_VERSION, cpu.freq_mhz, s_wifi, s_work, s_heap, s_nvs, s_sys_errors, s_sys_flags, s_wifi_flags);
               if (json) mqttPublish(_mqttTopicSysInfo, json, 
-                CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, false, true);
+                CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, true, false, true);
             };
 
             if (s_wifi_flags) free(s_wifi_flags);
@@ -285,9 +287,9 @@ void sysinfoPublishSysInfo()
           #else
             if ((s_wifi) && (s_work) && (s_heap) && (s_nvs)) {
               char * json = malloc_stringf("{\"firmware\":\"%s\",\"cpu_mhz\":%d,\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s}", 
-                APP_VERSION, CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ, s_wifi, s_work, s_heap, s_nvs);
+                APP_VERSION, cpu.freq_mhz, s_wifi, s_work, s_heap, s_nvs);
               if (json) mqttPublish(_mqttTopicSysInfo, json, 
-                CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, false, true);
+                CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, true, false, true);
             };
           #endif // CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS
           
@@ -405,7 +407,7 @@ void sysinfoPublishTaskList()
       // Publish data
       if (json_summary) {
         mqttPublish(_mqttTopicTaskList, malloc_stringf("[%s]", json_summary), 
-          CONFIG_MQTT_TASKLIST_QOS, CONFIG_MQTT_TASKLIST_RETAINED, false, false, true);
+          CONFIG_MQTT_TASKLIST_QOS, CONFIG_MQTT_TASKLIST_RETAINED, true, false, true);
         free(json_summary);
         json_summary = nullptr;
       };
@@ -457,7 +459,7 @@ static void sysinfoMqttEventHandler(void* arg, esp_event_base_t event_base, int3
         jsonWiFiDebug, 
         CONFIG_MQTT_WIFI_DEBUG_QOS,
         CONFIG_MQTT_WIFI_DEBUG_RETAINED,
-        false, true, true);
+        true, true, true);
     };
     #endif // CONFIG_WIFI_DEBUG_ENABLE
   } 
