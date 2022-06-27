@@ -145,22 +145,22 @@ void mqttPublishDateTime(const struct tm* timeinfo)
     // rlog_d(logTAG, "Date and time publishing...");
     
     #if CONFIG_MQTT_TIME_AS_PLAIN
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "time"), _strTime, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, false);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "date"), _strDate, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, false);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "weekday"), _strWeekDay, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, false);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "timeday"), _strTimeDay, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, false);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "datetime1"), _strDatetime1, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, false);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "datetime2"), _strDatetime2, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, false);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "year"), malloc_stringf("%d", timeinfo->tm_year+1900), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "month"), malloc_stringf("%d", timeinfo->tm_mon), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "day"), malloc_stringf("%d", timeinfo->tm_mday), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "hour"), malloc_stringf("%d", timeinfo->tm_hour), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "min"), malloc_stringf("%d", timeinfo->tm_min), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "wday"), malloc_stringf("%d", timeinfo->tm_wday), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "yday"), malloc_stringf("%d", timeinfo->tm_yday), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "worktime/days"), malloc_stringf("%d", _worktime.days), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "worktime/hours"), malloc_stringf("%d", _worktime.hours), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
-      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "worktime/minutes"), malloc_stringf("%d", _worktime.minutes), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "time"), _strTime, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, false);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "date"), _strDate, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, false);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "weekday"), _strWeekDay, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, false);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "timeday"), _strTimeDay, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, false);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "datetime1"), _strDatetime1, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, false);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "datetime2"), _strDatetime2, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, false);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "year"), malloc_stringf("%d", timeinfo->tm_year+1900), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "month"), malloc_stringf("%d", timeinfo->tm_mon), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "day"), malloc_stringf("%d", timeinfo->tm_mday), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "hour"), malloc_stringf("%d", timeinfo->tm_hour), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "min"), malloc_stringf("%d", timeinfo->tm_min), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "wday"), malloc_stringf("%d", timeinfo->tm_wday), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "yday"), malloc_stringf("%d", timeinfo->tm_yday), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "worktime/days"), malloc_stringf("%d", _worktime.days), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "worktime/hours"), malloc_stringf("%d", _worktime.hours), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
+      mqttPublish(mqttGetSubTopic(_mqttTopicTime, "worktime/minutes"), malloc_stringf("%d", _worktime.minutes), CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, true);
     #endif // CONFIG_MQTT_TIME_AS_PLAIN
 
     #if CONFIG_MQTT_TIME_AS_JSON
@@ -168,7 +168,7 @@ void mqttPublishDateTime(const struct tm* timeinfo)
         _strTime, _strDate,  _strWeekDay, _strTimeDay, _strDatetime1, _strDatetime2, 
         timeinfo->tm_year+1900, timeinfo->tm_mon, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_wday, timeinfo->tm_yday,
         _worktime.days, _worktime.hours, _worktime.minutes);
-      if (json) mqttPublish(_mqttTopicTime, json, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, true, false, true);
+      if (json) mqttPublish(_mqttTopicTime, json, CONFIG_MQTT_TIME_QOS, CONFIG_MQTT_TIME_RETAINED, false, true);
     #endif // CONFIG_MQTT_TIME_AS_JSON
   } else {
     rlog_w(logTAG, "Failed to publish date and time - MQTT is not connected");
@@ -242,18 +242,18 @@ void sysinfoPublishSysInfo()
         if (mqttTopicStatusGet()) {
             #if CONFIG_MQTT_STATUS_ONLINE_SYSINFO
               mqttPublish(mqttTopicStatusGet(), malloc_stringf("%s", s_status), 
-                CONFIG_MQTT_STATUS_QOS, CONFIG_MQTT_STATUS_RETAINED, true, false, true);
+                CONFIG_MQTT_STATUS_QOS, CONFIG_MQTT_STATUS_RETAINED, false, true);
             #else
               #if CONFIG_MQTT_STATUS_ONLINE
                 mqttPublish(mqttTopicStatusGet(), (char*)CONFIG_MQTT_STATUS_ONLINE_PAYLOAD, 
-                  CONFIG_MQTT_STATUS_QOS, CONFIG_MQTT_STATUS_RETAINED, true, false, false);
+                  CONFIG_MQTT_STATUS_QOS, CONFIG_MQTT_STATUS_RETAINED, false, false);
               #endif // CONFIG_MQTT_STATUS_ONLINE
             #endif // CONFIG_MQTT_STATUS_ONLINE_SYSINFO
         };
       #endif // CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO
       
       #if CONFIG_MQTT_SYSINFO_ENABLE
-        if (statesInetIsGood(true) && _mqttTopicSysInfo) {
+        if (esp_heap_free_check() && _mqttTopicSysInfo) {
           char * s_wifi = malloc_stringf("{\"ssid\":\"%s\",\"rssi\":%d,\"ip\":\"%d.%d.%d.%d\",\"mask\":\"%d.%d.%d.%d\",\"gw\":\"%d.%d.%d.%d\"}",
             wifi_info.ssid, wifi_info.rssi,
             ip[0], ip[1], ip[2], ip[3], mask[0], mask[1], mask[2], mask[3], gw[0], gw[1], gw[2], gw[3]);
@@ -278,7 +278,7 @@ void sysinfoPublishSysInfo()
               char * json = malloc_stringf("{\"firmware\":\"%s\",\"cpu_mhz\":%d,\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s,\"errors\":%s,\"sys_flags\":%s,\"wifi_flags\":%s}", 
                 APP_VERSION, cpu.freq_mhz, s_wifi, s_work, s_heap, s_nvs, s_sys_errors, s_sys_flags, s_wifi_flags);
               if (json) mqttPublish(_mqttTopicSysInfo, json, 
-                CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, true, false, true);
+                CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, true);
             };
 
             if (s_wifi_flags) free(s_wifi_flags);
@@ -289,7 +289,7 @@ void sysinfoPublishSysInfo()
               char * json = malloc_stringf("{\"firmware\":\"%s\",\"cpu_mhz\":%d,\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s}", 
                 APP_VERSION, cpu.freq_mhz, s_wifi, s_work, s_heap, s_nvs);
               if (json) mqttPublish(_mqttTopicSysInfo, json, 
-                CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, true, false, true);
+                CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, true);
             };
           #endif // CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS
           
@@ -350,7 +350,7 @@ const char* sysinfoTaskListState(eTaskState state)
 
 void sysinfoPublishTaskList()
 {
-  if (statesInetIsGood(true) && statesMqttIsEnabled() && (_mqttTopicTaskList)) {
+  if (esp_heap_free_check() && statesMqttIsEnabled() && (_mqttTopicTaskList)) {
     TaskStatus_t *pxTaskStatusArray = nullptr;
     volatile UBaseType_t uxArraySize, x;
     uint32_t ulTotalRunTime;
@@ -407,7 +407,7 @@ void sysinfoPublishTaskList()
       // Publish data
       if (json_summary) {
         mqttPublish(_mqttTopicTaskList, malloc_stringf("[%s]", json_summary), 
-          CONFIG_MQTT_TASKLIST_QOS, CONFIG_MQTT_TASKLIST_RETAINED, true, false, true);
+          CONFIG_MQTT_TASKLIST_QOS, CONFIG_MQTT_TASKLIST_RETAINED, false, true);
         free(json_summary);
         json_summary = nullptr;
       };
@@ -459,7 +459,7 @@ static void sysinfoMqttEventHandler(void* arg, esp_event_base_t event_base, int3
         jsonWiFiDebug, 
         CONFIG_MQTT_WIFI_DEBUG_QOS,
         CONFIG_MQTT_WIFI_DEBUG_RETAINED,
-        true, true, true);
+        true, true);
     };
     #endif // CONFIG_WIFI_DEBUG_ENABLE
   } 
