@@ -311,6 +311,69 @@ void sysinfoPublishSysInfo()
 // -----------------------------------------------------------------------------------------------------------------------
 // --------------------------------------------- Publish tasklist information --------------------------------------------
 // -----------------------------------------------------------------------------------------------------------------------
+#if CONFIG_MQTT_TASKSHOW_ENABLE
+
+const char* sysinfoShowTaskState(eTaskState state)
+{
+  switch (state) {
+    case eRunning:   return "R";
+    case eReady:     return "W";
+    case eBlocked:   return "B";
+    case eSuspended: return "S";
+    case eDeleted:   return "D";
+    default:         return "I";
+  };
+}
+
+void sysinfoShowTaskList(void* arg)
+{
+  TaskStatus_t *pxTaskStatusArray = nullptr;
+  volatile UBaseType_t uxArraySize, x;
+  uint32_t ulTotalRunTime;
+
+  // Take a snapshot of the number of tasks in case it changes while this function is executing.
+  uxArraySize = uxTaskGetNumberOfTasks();
+  // Allocate a TaskStatus_t structure for each task.  An array could be allocated statically at compile time.
+  pxTaskStatusArray = (TaskStatus_t*)esp_malloc(uxArraySize * sizeof(TaskStatus_t));
+  if (pxTaskStatusArray) {
+    // Generate raw status information about each task.
+    uxArraySize = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize, &ulTotalRunTime);
+    rlog_w("TASK", "+----+-------------+---+---+----+----+----------+------+");
+    rlog_w("TASK", "| id | task name   | c | s | cp | bp |    stack | mark |");
+    rlog_w("TASK", "+----+-------------+---+---+----+----+----------+------+");
+    // For each populated position in the pxTaskStatusArray array
+    for (x=0; x<uxArraySize; x++) {
+      rlog_w("TASK", "| %02d | %11.11s | %d | %1.1s | %02d | %02d | %08x | %04d |",
+        pxTaskStatusArray[x].xTaskNumber, 
+        pxTaskStatusArray[x].pcTaskName, 
+        #ifdef CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
+        pxTaskStatusArray[x].xCoreID > 1 ? 8 : pxTaskStatusArray[x].xCoreID, 
+        #else
+        8,
+        #endif // CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
+        sysinfoShowTaskState(pxTaskStatusArray[x].eCurrentState), 
+        pxTaskStatusArray[x].uxCurrentPriority, pxTaskStatusArray[x].uxBasePriority,
+        pxTaskStatusArray[x].pxStackBase, pxTaskStatusArray[x].usStackHighWaterMark);
+    };
+    rlog_w("TASK", "+----+-------------+---+---+----+----+----------+------+");
+    // The array is no longer needed, free the memory it consumes
+    vPortFree(pxTaskStatusArray);
+  };
+}
+
+esp_err_t sysinfoShowTaskStartTimer()
+{
+  static esp_timer_handle_t _timerTasks;
+  esp_timer_create_args_t timer_args;
+  memset(&timer_args, 0, sizeof(esp_timer_create_args_t));
+  timer_args.callback = &sysinfoShowTaskList;
+  timer_args.name = "show_tasks";
+  RE_ERROR_CHECK(esp_timer_create(&timer_args, &_timerTasks));
+  RE_ERROR_CHECK(esp_timer_start_periodic(_timerTasks, CONFIG_MQTT_TASKSHOW_INTERVAL));
+  return ESP_OK;
+}
+
+#endif // CONFIG_MQTT_TASKSHOW_ENABLE
 
 #if CONFIG_MQTT_TASKLIST_ENABLE
 
@@ -367,7 +430,7 @@ void sysinfoPublishTaskList()
       // For each populated position in the pxTaskStatusArray array
       for (x=0; x<uxArraySize; x++) {
         if (ulTotalRunTime > 0) {
-          json_task = malloc_stringf("{\"id\":%d,\"state\":\"%s\",\"core\":%d,\"state\":\"%s\",\"current_priority\":%d,\"base_priority\":%d,\"run_time_counter\":%d,\"run_time\":%.2f,\"stack_base\":\"%x\",\"stack_minimum\":%d}",
+          json_task = malloc_stringf("{\"id\":%d,\"name\":\"%s\",\"core\":%d,\"state\":\"%s\",\"current_priority\":%d,\"base_priority\":%d,\"run_time_counter\":%d,\"run_time\":%.2f,\"stack_base\":\"%x\",\"stack_minimum\":%d}",
             pxTaskStatusArray[x].xTaskNumber, 
             pxTaskStatusArray[x].pcTaskName, 
             #ifdef CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
@@ -487,6 +550,10 @@ static void sysinfoMqttEventHandler(void* arg, esp_event_base_t event_base, int3
 
 bool sysinfoEventHandlerRegister()
 {
+  #if CONFIG_MQTT_TASKSHOW_ENABLE
+    sysinfoShowTaskStartTimer();
+  #endif // CONFIG_MQTT_TASKSHOW_ENABLE
+  
   return eventHandlerRegister(RE_MQTT_EVENTS, RE_MQTT_CONNECTED, &sysinfoMqttEventHandler, nullptr)
       && eventHandlerRegister(RE_MQTT_EVENTS, RE_MQTT_CONN_LOST, &sysinfoMqttEventHandler, nullptr);
 };

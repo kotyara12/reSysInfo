@@ -59,6 +59,10 @@ void  mqttTopicSysInfoFree();
 void  sysinfoPublishSysInfo();
 #endif // CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
 
+#if CONFIG_MQTT_TASKSHOW_ENABLE
+esp_err_t sysinfoShowTaskStartTimer();
+#endif // CONFIG_MQTT_TASKSHOW_ENABLE
+
 #if CONFIG_MQTT_TASKLIST_ENABLE
 char* mqttTopicTaskListCreate(const bool primary);
 char* mqttTopicTaskListGet();
