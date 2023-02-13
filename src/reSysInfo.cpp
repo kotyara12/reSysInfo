@@ -415,7 +415,7 @@ void sysinfoPublishTaskList()
 {
   if (esp_heap_free_check() && statesMqttIsEnabled() && (_mqttTopicTaskList)) {
     TaskStatus_t *pxTaskStatusArray = nullptr;
-    volatile UBaseType_t uxArraySize, x;
+    volatile UBaseType_t uxArraySize;
     uint32_t ulTotalRunTime;
 
     // Take a snapshot of the number of tasks in case it changes while this function is executing.
@@ -428,7 +428,7 @@ void sysinfoPublishTaskList()
       // Generate raw status information about each task.
       uxArraySize = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize, &ulTotalRunTime);
       // For each populated position in the pxTaskStatusArray array
-      for (x=0; x<uxArraySize; x++) {
+      for (UBaseType_t x=0; x<uxArraySize; x++) {
         if (ulTotalRunTime > 0) {
           json_task = malloc_stringf("{\"id\":%d,\"name\":\"%s\",\"core\":%d,\"state\":\"%s\",\"current_priority\":%d,\"base_priority\":%d,\"run_time_counter\":%d,\"run_time\":%.2f,\"stack_base\":\"%x\",\"stack_minimum\":%d}",
             pxTaskStatusArray[x].xTaskNumber, 

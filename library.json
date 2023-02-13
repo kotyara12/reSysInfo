@@ -1,6 +1,6 @@
 {
   "name": "reSysInfo",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Module for collecting and publishing system statistics about the controller's operation, including date and time",
   "keywords": "system",
   "authors":
