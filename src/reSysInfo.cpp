@@ -328,7 +328,7 @@ const char* sysinfoShowTaskState(eTaskState state)
 void sysinfoShowTaskList(void* arg)
 {
   TaskStatus_t *pxTaskStatusArray = nullptr;
-  volatile UBaseType_t uxArraySize, x;
+  volatile UBaseType_t uxArraySize;
   uint32_t ulTotalRunTime;
 
   // Take a snapshot of the number of tasks in case it changes while this function is executing.
@@ -342,7 +342,7 @@ void sysinfoShowTaskList(void* arg)
     rlog_w("TASK", "| id | task name   | c | s | cp | bp |    stack | mark |");
     rlog_w("TASK", "+----+-------------+---+---+----+----+----------+------+");
     // For each populated position in the pxTaskStatusArray array
-    for (x=0; x<uxArraySize; x++) {
+    for (UBaseType_t x=0; x<uxArraySize; x++) {
       rlog_w("TASK", "| %02d | %11.11s | %d | %1.1s | %02d | %02d | %08x | %04d |",
         pxTaskStatusArray[x].xTaskNumber, 
         pxTaskStatusArray[x].pcTaskName, 
