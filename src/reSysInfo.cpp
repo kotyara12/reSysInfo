@@ -217,11 +217,13 @@ void sysinfoPublishSysInfo()
   double heap_total = (double)heap_caps_get_total_size(MALLOC_CAP_DEFAULT) / 1024.0;
   double heap_free  = (double)heap_caps_get_free_size(MALLOC_CAP_DEFAULT) / 1024.0;
   double heap_min   = (double)heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT) / 1024.0;
-  wifi_ap_record_t wifi_info = wifiInfo();
-  esp_netif_ip_info_t wifi_ip = wifiLocalIP();
-  uint8_t * ip = (uint8_t*)&(wifi_ip.ip);
-  uint8_t * mask = (uint8_t*)&(wifi_ip.netmask);
-  uint8_t * gw = (uint8_t*)&(wifi_ip.gw);
+  #if !defined(CONFIG_WIFI_ENABLED) || (CONFIG_WIFI_ENABLED == 1)
+    wifi_ap_record_t wifi_info = wifiInfo();
+    esp_netif_ip_info_t wifi_ip = wifiLocalIP();
+    uint8_t * ip = (uint8_t*)&(wifi_ip.ip);
+    uint8_t * mask = (uint8_t*)&(wifi_ip.netmask);
+    uint8_t * gw = (uint8_t*)&(wifi_ip.gw);
+  #endif // CONFIG_WIFI_ENABLED
   nvs_stats_t nvs_stats;
   nvs_get_stats(NULL, &nvs_stats);
   rtc_cpu_freq_config_t cpu;
@@ -232,10 +234,17 @@ void sysinfoPublishSysInfo()
 
   if (statesMqttIsEnabled()) {
     rlog_d(logTAG, "System information publishing...");
-    char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.0f%% %d %.0f%%",
-      _worktime.days, _worktime.hours, _worktime.minutes, wifi_info.rssi, 
-      100.0*heap_free/heap_total, heapAllocFailedCount(),
-      100.0*nvs_stats.free_entries/nvs_stats.total_entries);
+    #if !defined(CONFIG_WIFI_ENABLED) || (CONFIG_WIFI_ENABLED == 1)
+      char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.0f%% %d %.0f%%",
+        _worktime.days, _worktime.hours, _worktime.minutes, wifi_info.rssi, 
+        100.0*heap_free/heap_total, heapAllocFailedCount(),
+        100.0*nvs_stats.free_entries/nvs_stats.total_entries);
+    #else
+      char * s_status = malloc_stringf("%.2d : %.2d : %.2d\n%.0f%% %d %.0f%%",
+        _worktime.days, _worktime.hours, _worktime.minutes, 
+        100.0*heap_free/heap_total, heapAllocFailedCount(),
+        100.0*nvs_stats.free_entries/nvs_stats.total_entries);
+    #endif // CONFIG_WIFI_ENABLED
       
     if (s_status) {
       #if CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO
@@ -254,9 +263,13 @@ void sysinfoPublishSysInfo()
       
       #if CONFIG_MQTT_SYSINFO_ENABLE
         if (esp_heap_free_check() && _mqttTopicSysInfo) {
-          char * s_wifi = malloc_stringf("{\"ssid\":\"%s\",\"rssi\":%d,\"ip\":\"%d.%d.%d.%d\",\"mask\":\"%d.%d.%d.%d\",\"gw\":\"%d.%d.%d.%d\"}",
-            wifi_info.ssid, wifi_info.rssi,
-            ip[0], ip[1], ip[2], ip[3], mask[0], mask[1], mask[2], mask[3], gw[0], gw[1], gw[2], gw[3]);
+          #if !defined(CONFIG_WIFI_ENABLED) || (CONFIG_WIFI_ENABLED == 1)
+            char * s_wifi = malloc_stringf("{\"ssid\":\"%s\",\"rssi\":%d,\"ip\":\"%d.%d.%d.%d\",\"mask\":\"%d.%d.%d.%d\",\"gw\":\"%d.%d.%d.%d\"}",
+              wifi_info.ssid, wifi_info.rssi,
+              ip[0], ip[1], ip[2], ip[3], mask[0], mask[1], mask[2], mask[3], gw[0], gw[1], gw[2], gw[3]);
+          #else
+            char * s_wifi = malloc_string("{\"wifi\":\"DISABLED\"}");
+          #endif // CONFIG_WIFI_ENABLED
           char * s_work = malloc_stringf("{\"days\":%d,\"hours\":%d,\"minutes\":%d}",
             _worktime.days, _worktime.hours, _worktime.minutes);
           char * s_heap = malloc_stringf("{\"total\":%.1f,\"errors\":%d,\"free\":%.1f,\"free_percents\":%.1f,\"free_min\":%.1f,\"free_min_percents\":%.1f}",
@@ -272,7 +285,11 @@ void sysinfoPublishSysInfo()
           #if defined(CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS) && CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS
             char * s_sys_errors = statesGetErrorsJson();
             char * s_sys_flags = statesGetJson();
-            char * s_wifi_flags = wifiStatusGetJson();
+            #if !defined(CONFIG_WIFI_ENABLED) || (CONFIG_WIFI_ENABLED == 1)
+              char * s_wifi_flags = wifiStatusGetJson();
+            #else
+              char * s_wifi_flags = malloc_string("{\"wifi\":\"DISABLED\"}");
+            #endif // CONFIG_WIFI_ENABLED
 
             if ((s_wifi) && (s_work) && (s_heap) && (s_nvs) && (s_sys_errors) && (s_sys_flags) && (s_wifi_flags)) {
               char * json = malloc_stringf("{\"firmware\":\"%s\",\"cpu_mhz\":%d,\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s,\"errors\":%s,\"sys_flags\":%s,\"wifi_flags\":%s}", 
@@ -495,55 +512,57 @@ static void sysinfoMqttEventHandler(void* arg, esp_event_base_t event_base, int3
     re_mqtt_event_data_t* data = (re_mqtt_event_data_t*)event_data;
 
     #if CONFIG_MQTT_TIME_ENABLE
-    mqttTopicDateTimeCreate(data->primary);
+      mqttTopicDateTimeCreate(data->primary);
     #endif // CONFIG_MQTT_TIME_ENABLE
 
     #if !CONFIG_MQTT_STATUS_LWT && (CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO)
-    mqttTopicStatusCreate(data->primary);
+      mqttTopicStatusCreate(data->primary);
     #endif // !CONFIG_MQTT_STATUS_LWT && (CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO)
 
     #if CONFIG_MQTT_SYSINFO_ENABLE
-    mqttTopicSysInfoCreate(data->primary);
+      mqttTopicSysInfoCreate(data->primary);
     #endif // CONFIG_MQTT_SYSINFO_ENABLE
 
     #if CONFIG_MQTT_TASKLIST_ENABLE
-    mqttTopicTaskListCreate(data->primary);
+      mqttTopicTaskListCreate(data->primary);
     #endif // CONFIG_MQTT_TASKLIST_ENABLE
 
     #if CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
-    sysinfoPublishSysInfo();
+      sysinfoPublishSysInfo();
     #endif // CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO || CONFIG_MQTT_SYSINFO_ENABLE
 
-    #if CONFIG_WIFI_DEBUG_ENABLE
-    char* jsonWiFiDebug = wifiGetDebugInfo();
-    if (jsonWiFiDebug) {
-      mqttPublish(
-        mqttGetTopicDevice1(data->primary, CONFIG_MQTT_WIFI_DEBUG_LOCAL, CONFIG_MQTT_WIFI_DEBUG_TOPIC),
-        jsonWiFiDebug, 
-        CONFIG_MQTT_WIFI_DEBUG_QOS,
-        CONFIG_MQTT_WIFI_DEBUG_RETAINED,
-        true, true);
-    };
-    #endif // CONFIG_WIFI_DEBUG_ENABLE
+    #if !defined(CONFIG_WIFI_ENABLED) || (CONFIG_WIFI_ENABLED == 1)
+      #if CONFIG_WIFI_DEBUG_ENABLE
+        char* jsonWiFiDebug = wifiGetDebugInfo();
+        if (jsonWiFiDebug) {
+          mqttPublish(
+            mqttGetTopicDevice1(data->primary, CONFIG_MQTT_WIFI_DEBUG_LOCAL, CONFIG_MQTT_WIFI_DEBUG_TOPIC),
+            jsonWiFiDebug, 
+            CONFIG_MQTT_WIFI_DEBUG_QOS,
+            CONFIG_MQTT_WIFI_DEBUG_RETAINED,
+            true, true);
+        };
+      #endif // CONFIG_WIFI_DEBUG_ENABLE
+    #endif // CONFIG_WIFI_ENABLED
   } 
 
   // MQTT disconnected
   else if ((event_id == RE_MQTT_CONN_LOST) || (event_id == RE_MQTT_CONN_FAILED)) {
 
     #if CONFIG_MQTT_TIME_ENABLE
-    mqttTopicDateTimeFree();
+      mqttTopicDateTimeFree();
     #endif // CONFIG_MQTT_TIME_ENABLE
 
     #if CONFIG_MQTT_STATUS_LWT || CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO
-    mqttTopicStatusFree();
+      mqttTopicStatusFree();
     #endif // CONFIG_MQTT_STATUS_LWT || CONFIG_MQTT_STATUS_ONLINE || CONFIG_MQTT_STATUS_ONLINE_SYSINFO
 
     #if CONFIG_MQTT_SYSINFO_ENABLE
-    mqttTopicSysInfoFree();
+      mqttTopicSysInfoFree();
     #endif // CONFIG_MQTT_SYSINFO_ENABLE
 
     #if CONFIG_MQTT_TASKLIST_ENABLE
-    mqttTopicTaskListFree();
+      mqttTopicTaskListFree();
     #endif // CONFIG_MQTT_TASKLIST_ENABLE
   };
 }
