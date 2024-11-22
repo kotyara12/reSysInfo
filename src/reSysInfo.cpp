@@ -214,9 +214,12 @@ void mqttTopicSysInfoFree()
 
 void sysinfoPublishSysInfo()
 {
-  double heap_total = (double)heap_caps_get_total_size(MALLOC_CAP_DEFAULT) / 1024.0;
-  double heap_free  = (double)heap_caps_get_free_size(MALLOC_CAP_DEFAULT) / 1024.0;
-  double heap_min   = (double)heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT) / 1024.0;
+  double heap_int_total = (double)heap_caps_get_total_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) / 1024.0;
+  double heap_int_free  = (double)heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) / 1024.0;
+  double heap_int_min   = (double)heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) / 1024.0;
+  double heap_spi_total = (double)heap_caps_get_total_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) / 1024.0;
+  double heap_spi_free  = (double)heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) / 1024.0;
+  double heap_spi_min   = (double)heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) / 1024.0;
   #if !defined(CONFIG_WIFI_ENABLED) || (CONFIG_WIFI_ENABLED == 1)
     wifi_ap_record_t wifi_info = wifiInfo();
     esp_netif_ip_info_t wifi_ip = wifiLocalIP();
@@ -237,12 +240,12 @@ void sysinfoPublishSysInfo()
     #if !defined(CONFIG_WIFI_ENABLED) || (CONFIG_WIFI_ENABLED == 1)
       char * s_status = malloc_stringf("%.2d : %.2d : %.2d\nRSSI: %d dBi\n%.0f%% %d %.0f%%",
         _worktime.days, _worktime.hours, _worktime.minutes, wifi_info.rssi, 
-        100.0*heap_free/heap_total, heapAllocFailedCount(),
+        100.0*heap_int_free/heap_int_total, heapAllocFailedCount(),
         100.0*nvs_stats.free_entries/nvs_stats.total_entries);
     #else
       char * s_status = malloc_stringf("%.2d : %.2d : %.2d\n%.0f%% %d %.0f%%",
         _worktime.days, _worktime.hours, _worktime.minutes, 
-        100.0*heap_free/heap_total, heapAllocFailedCount(),
+        100.0*heap_int_free/heap_int_total, heapAllocFailedCount(),
         100.0*nvs_stats.free_entries/nvs_stats.total_entries);
     #endif // CONFIG_WIFI_ENABLED
       
@@ -272,10 +275,14 @@ void sysinfoPublishSysInfo()
           #endif // CONFIG_WIFI_ENABLED
           char * s_work = malloc_stringf("{\"days\":%d,\"hours\":%d,\"minutes\":%d}",
             _worktime.days, _worktime.hours, _worktime.minutes);
-          char * s_heap = malloc_stringf("{\"total\":%.1f,\"errors\":%d,\"free\":%.1f,\"free_percents\":%.1f,\"free_min\":%.1f,\"free_min_percents\":%.1f}",
-            heap_total, heapAllocFailedCount(), 
-            heap_free, 100.0*heap_free/heap_total, 
-            heap_min, 100.0*heap_min/heap_total);
+          char * s_heap_int = malloc_stringf("{\"total\":%.1f,\"errors\":%d,\"free\":%.1f,\"free_percents\":%.1f,\"free_min\":%.1f,\"free_min_percents\":%.1f}",
+            heap_int_total, heapAllocFailedCount(), 
+            heap_int_free, 100.0*heap_int_free/heap_int_total, 
+            heap_int_min, 100.0*heap_int_min/heap_int_total);
+          char * s_heap_spi = malloc_stringf("{\"total\":%.1f,\"free\":%.1f,\"free_percents\":%.1f,\"free_min\":%.1f,\"free_min_percents\":%.1f}",
+            heap_spi_total, 
+            heap_spi_free, 100.0*heap_spi_free/heap_spi_total, 
+            heap_spi_min, 100.0*heap_spi_min/heap_spi_total);
           char * s_nvs = malloc_stringf("{\"total_entries\":%d,\"used_entries\":%d,\"used_percents\":%.1f,\"free_entries\":%d,\"free_percents\":%.1f,\"namespaces\":%d}",
             nvs_stats.total_entries, 
             nvs_stats.used_entries, 100.0*nvs_stats.used_entries/nvs_stats.total_entries,
@@ -291,9 +298,9 @@ void sysinfoPublishSysInfo()
               char * s_wifi_flags = malloc_string("{\"wifi\":\"DISABLED\"}");
             #endif // CONFIG_WIFI_ENABLED
 
-            if ((s_wifi) && (s_work) && (s_heap) && (s_nvs) && (s_sys_errors) && (s_sys_flags) && (s_wifi_flags)) {
-              char * json = malloc_stringf("{\"firmware\":\"%s\",\"cpu_mhz\":%d,\"wifi\":%s,\"worktime\":%s,\"heap\":%s,\"nvs\":%s,\"errors\":%s,\"sys_flags\":%s,\"wifi_flags\":%s}", 
-                APP_VERSION, cpu.freq_mhz, s_wifi, s_work, s_heap, s_nvs, s_sys_errors, s_sys_flags, s_wifi_flags);
+            if ((s_wifi) && (s_work) && (s_heap_int) && (s_heap_spi) && (s_nvs) && (s_sys_errors) && (s_sys_flags) && (s_wifi_flags)) {
+              char * json = malloc_stringf("{\"firmware\":\"%s\",\"cpu_mhz\":%d,\"wifi\":%s,\"worktime\":%s,\"heap_internal\":%s,\"heap_spiram\":%s,\"nvs\":%s,\"errors\":%s,\"sys_flags\":%s,\"wifi_flags\":%s}", 
+                APP_VERSION, cpu.freq_mhz, s_wifi, s_work, s_heap_int, s_heap_spi, s_nvs, s_sys_errors, s_sys_flags, s_wifi_flags);
               if (json) mqttPublish(_mqttTopicSysInfo, json, 
                 CONFIG_MQTT_SYSINFO_QOS, CONFIG_MQTT_SYSINFO_RETAINED, false, true);
             };
@@ -311,7 +318,8 @@ void sysinfoPublishSysInfo()
           #endif // CONFIG_MQTT_SYSINFO_SYSTEM_FLAGS
           
           if (s_nvs)  free(s_nvs);
-          if (s_heap) free(s_heap);
+          if (s_heap_int) free(s_heap_int);
+          if (s_heap_spi) free(s_heap_spi);
           if (s_work) free(s_work);
           if (s_wifi) free(s_wifi);
         };
